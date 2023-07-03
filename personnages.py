@@ -10,8 +10,10 @@ def fetch_all_people():
         response = requests.get(url)
         data = response.json()
         all_people.extend(data['results'])
+        print(f"Fetched {len(data['results'])} people from {url}")
         url = data['next']
 
+    print(f"Total people fetched: {len(all_people)}")
     return all_people
 
 def process_people_data(people):
@@ -19,8 +21,15 @@ def process_people_data(people):
 
     for person in people:
         mass = None
-        if person['mass'].isnumeric():
+        # Check if mass is a number
+        try:
             mass = float(person['mass'])
+        except ValueError:
+            print(f"Cannot convert {person['mass']} to float")
+
+        # Convert 'created' and 'edited' to datetime
+        created = datetime.fromisoformat(person['created'].replace("Z", "+00:00"))
+        edited = datetime.fromisoformat(person['edited'].replace("Z", "+00:00"))
 
         processed_person = (
             person['name'], 
@@ -32,8 +41,8 @@ def process_people_data(people):
             person['birth_year'], 
             person['gender'], 
             person['homeworld'], 
-            person['created'], 
-            person['edited'], 
+            created, 
+            edited, 
             person['url']
         )
 
@@ -41,21 +50,21 @@ def process_people_data(people):
 
     return processed_people
 
-
 def insert_people_data(cnx, people):
-    insert_person = ("INSERT INTO people "
+    insert_person = ("INSERT INTO personnages "
                      "(name, height, mass, hair_color, skin_color, eye_color, birth_year, gender, homeworld, created, edited, url) "
                      "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
     cursor = cnx.cursor()
 
-    try:
-        cursor.executemany(insert_person, people)
-        cnx.commit()
-    except Exception as e:
-        print(f"Error inserting people data: {e}")
-        cnx.rollback()
-    finally:
-        cursor.close()
+    for person in people:
+        try:
+            cursor.execute(insert_person, person)
+            cnx.commit()
+        except Exception as e:
+            print(f"Error inserting person {person[0]}: {e}")
+            cnx.rollback()
+
+    cursor.close()
 
 def insert_all_people_to_db(cnx):
     all_people = fetch_all_people()
@@ -63,6 +72,6 @@ def insert_all_people_to_db(cnx):
     insert_people_data(cnx, processed_people)
 
 # Où que vous exécutiez votre script
-cnx = mysql.connector.connect(user='root', password='password', host='localhost', database='starwars')
+cnx = mysql.connector.connect(user='root', password='Meven1708!', host='localhost', database='starwars')
 insert_all_people_to_db(cnx)
 cnx.close()

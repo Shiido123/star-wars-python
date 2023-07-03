@@ -72,6 +72,6 @@ def insert_all_people_to_db(cnx):
     insert_people_data(cnx, processed_people)
 
 # Où que vous exécutiez votre script
-cnx = mysql.connector.connect(user='root', password='Meven1708!', host='localhost', database='starwars')
+cnx = mysql.connector.connect(user='root', password='password', host='localhost', database='starwars')
 insert_all_people_to_db(cnx)
 cnx.close()
